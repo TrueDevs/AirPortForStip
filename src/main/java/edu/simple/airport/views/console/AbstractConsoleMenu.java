@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -14,6 +13,14 @@ public abstract class AbstractConsoleMenu implements IConsoleMenu {
 	private InputStream in = System.in;
 
 	private String head;
+	private String description;
+	private boolean useIndent = true;
+	private boolean useEndLine = true;
+	
+	private static String DESCRIPTION_LINE	=  "++++++++++++++++++++++++++++++++++++++++";
+	private static String END_MENU_LINE		=  "========================================";
+	private static String SUB_MENU_INDENT	=  "\t";
+	
 	private Map<Integer, SubMenu> menus = new TreeMap<Integer, AbstractConsoleMenu.SubMenu>();
 	
 	public AbstractConsoleMenu() {
@@ -29,12 +36,21 @@ public abstract class AbstractConsoleMenu implements IConsoleMenu {
 	final private boolean drawMenu() {
 		//print menus
 		out.println(head);
+		
+		if (description != null) {
+			out.println(DESCRIPTION_LINE);
+			out.println(description);
+			out.println(DESCRIPTION_LINE);
+		}
+		
+		out.println();
 		for (Integer number : menus.keySet()) {
 			SubMenu menu = menus.get(number);
-			menu.print();
+			menu.print(useIndent);
 		}
 		
 		//wait response
+		boolean result;
 		BufferedReader br = new BufferedReader(new InputStreamReader(in));
 		try {
 			int number = Integer.parseInt(br.readLine());
@@ -42,38 +58,48 @@ public abstract class AbstractConsoleMenu implements IConsoleMenu {
 			if (menu == null) {
 				throw new IOException("Wrong menu!");
 			}
-			return menu.check();
+			result = menu.check();
 		} catch (Exception e) {
 			out.println("Wrong menu!");
-			return true;
+			result = true;
 		}
+		
+		if (useEndLine) {
+			out.println(END_MENU_LINE);
+		}
+		
+		return result;
 	}
 
 	final protected void setHead(String head) {
 		this.head = head;
 	}
 	
+	final protected void setDescription(String description) {
+		this.description = description;
+	}
+	
 	final protected void addSubMenu(String title, ISubMenuEventHandler handler) {
 		int number = this.menus.size() + 1;
-		this.menus.put(number, constructMenu(number, title, number, handler));
+		this.menus.put(number, constructMenu(number, title, handler));
 	}
 	
 	private class SubMenu {
 		protected String title;
-		protected int id;
 		protected int number;
 		
 		protected ISubMenuEventHandler handler;
 		
-		public void print() {
-			out.println(String.format("%d.) %s", number, title));
+		public void print(boolean useIndent) {
+			out.println((useIndent ? SUB_MENU_INDENT: "") +
+					String.format("%d.) %s", number, title));
 		}
 		
 		public boolean check() {
 			if (handler != null) {
-				return handler.onCheck(id, title);
+				return handler.onCheck(number, title);
 			} else {
-				out.println(String.format("Sub menu check event [%d, \"%s\"]", id, title));
+				out.println(String.format("Sub menu check event [%d, \"%s\"]", number, title));
 				return true;
 			}
 		}
@@ -82,10 +108,8 @@ public abstract class AbstractConsoleMenu implements IConsoleMenu {
 	private SubMenu constructMenu(
 			int number, 
 			String title, 
-			int id, 
 			ISubMenuEventHandler handler) {
 		SubMenu menu = new SubMenu();
-		menu.id 	= id;
 		menu.handler = handler;
 		menu.title 	= title;
 		menu.number = number;
