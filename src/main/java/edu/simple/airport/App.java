@@ -1,5 +1,7 @@
 package edu.simple.airport;
 
+import edu.simple.airport.views.console.Index;
+
 /**
  * Hello world!
  *
@@ -7,7 +9,8 @@ package edu.simple.airport;
 public class App  {
 
     public static void main( String[] args ) {
-        System.out.println( "Hello World!" );
+        Index index = new Index();
+        index.launchMenu();
     }
     
 }
